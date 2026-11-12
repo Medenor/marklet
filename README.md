@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="marklet.jpg" alt="Marklet logo" width="160">
+</p>
+
 # Marklet
 
 **A portable Markdown editor with live preview, in one HTML file.** No installation, no server, no network, no account.
