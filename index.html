@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <!--CSP-->
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A portable, offline Markdown editor with live preview, in a single HTML file." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Marklet</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b62c4'/%3E%3Cpath d='M6 22V10h3l3 4 3-4h3v12h-3v-7l-3 4-3-4v7zm16 0-4-5h3v-7h2v7h3z' fill='white'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-new" viewBox="0 0 24 24">
+          <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+          <path d="M14 3v6h6M12 12v6M9 15h6" />
+        </symbol>
+        <symbol id="i-open" viewBox="0 0 24 24">
+          <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        </symbol>
+        <symbol id="i-save" viewBox="0 0 24 24">
+          <path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+          <path d="M7 3v5h8V3M7 21v-7h10v7" />
+        </symbol>
+        <symbol id="i-export" viewBox="0 0 24 24">
+          <path d="M12 3v12M7 8l5-5 5 5M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+        </symbol>
+        <symbol id="i-link" viewBox="0 0 24 24">
+          <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+          <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+        </symbol>
+        <symbol id="i-ul" viewBox="0 0 24 24">
+          <path d="M9 6h11M9 12h11M9 18h11" />
+          <circle cx="4.5" cy="6" r="1" />
+          <circle cx="4.5" cy="12" r="1" />
+          <circle cx="4.5" cy="18" r="1" />
+        </symbol>
+        <symbol id="i-ol" viewBox="0 0 24 24">
+          <path d="M10 6h10M10 12h10M10 18h10M4 4h1v4M4 8h2M4 14.5a1 1 0 0 1 2 0c0 1-2 1.5-2 3h2" />
+        </symbol>
+        <symbol id="i-task" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="6" height="6" rx="1" />
+          <path d="m4.5 7 1.2 1.2L8 5.5M12 7h9M3 15h6v6H3zM12 18h9" />
+        </symbol>
+        <symbol id="i-quote" viewBox="0 0 24 24"><path d="M4 6v12M9 8h11M9 12h11M9 16h7" /></symbol>
+        <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" /></symbol>
+        <symbol id="i-table" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M3 10h18M3 15h18M10 4v16" />
+        </symbol>
+        <symbol id="i-hr" viewBox="0 0 24 24"><path d="M3 12h18M7 6h10M7 18h10" /></symbol>
+        <symbol id="i-theme" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" />
+        </symbol>
+        <symbol id="i-help" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01" />
+        </symbol>
+        <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h13M17 12l4 4-4 4M21 16H8" /></symbol>
+      </defs>
+    </svg>
+
+    <header class="toolbar">
+      <div class="brand" title="Marklet">
+        <span class="logo" aria-hidden="true">M↓</span>
+        <span class="doc-name"
+          ><span id="file-name">Untitled.md</span
+          ><span id="dirty" class="dirty" title="Unsaved changes" hidden>●</span></span
+        >
+      </div>
+
+      <div class="group" role="group" aria-label="File">
+        <button data-action="new" title="New document">
+          <svg><use href="#i-new" /></svg><span class="label">New</span>
+        </button>
+        <button data-action="open" title="Open file (Ctrl+O)">
+          <svg><use href="#i-open" /></svg><span class="label">Open</span>
+        </button>
+        <button data-action="save" title="Save (Ctrl+S)">
+          <svg><use href="#i-save" /></svg><span class="label">Save</span>
+        </button>
+        <details class="menu">
+          <summary title="Save as, export, copy, print">
+            <svg><use href="#i-export" /></svg><span class="label">Export</span>
+          </summary>
+          <div class="menu-items" role="menu">
+            <button role="menuitem" data-action="save-as">Save as… <kbd>Ctrl+Shift+S</kbd></button>
+            <button role="menuitem" data-action="export-html">Export as HTML</button>
+            <button role="menuitem" data-action="copy-rich">
+              Copy formatted text <small>for email, Teams, Word</small>
+            </button>
+            <button role="menuitem" data-action="copy-html">Copy HTML source</button>
+            <button role="menuitem" data-action="print">Print / Save as PDF <kbd>Ctrl+P</kbd></button>
+          </div>
+        </details>
+      </div>
+
+      <div class="group format" role="group" aria-label="Formatting">
+        <details class="menu">
+          <summary title="Heading (Ctrl+Alt+1…6)" class="text-btn">H</summary>
+          <div class="menu-items" role="menu">
+            <button role="menuitem" data-action="h1">Heading 1 <kbd>Ctrl+Alt+1</kbd></button>
+            <button role="menuitem" data-action="h2">Heading 2 <kbd>Ctrl+Alt+2</kbd></button>
+            <button role="menuitem" data-action="h3">Heading 3 <kbd>Ctrl+Alt+3</kbd></button>
+            <button role="menuitem" data-action="h4">Heading 4 <kbd>Ctrl+Alt+4</kbd></button>
+            <button role="menuitem" data-action="h0">Normal text <kbd>Ctrl+Alt+0</kbd></button>
+          </div>
+        </details>
+        <button data-action="bold" title="Bold (Ctrl+B)" class="text-btn"><b>B</b></button>
+        <button data-action="italic" title="Italic (Ctrl+I)" class="text-btn"><i>I</i></button>
+        <button data-action="strike" title="Strikethrough (Ctrl+Shift+X)" class="text-btn"><s>S</s></button>
+        <button data-action="code" title="Code (Ctrl+E)">
+          <svg><use href="#i-code" /></svg>
+        </button>
+        <button data-action="link" title="Link (Ctrl+K)">
+          <svg><use href="#i-link" /></svg>
+        </button>
+        <button data-action="ul" title="Bulleted list (Ctrl+Shift+8)">
+          <svg><use href="#i-ul" /></svg>
+        </button>
+        <button data-action="ol" title="Numbered list (Ctrl+Shift+7)">
+          <svg><use href="#i-ol" /></svg>
+        </button>
+        <button data-action="task" title="Task list">
+          <svg><use href="#i-task" /></svg>
+        </button>
+        <button data-action="quote" title="Quote (Ctrl+Shift+.)">
+          <svg><use href="#i-quote" /></svg>
+        </button>
+        <button data-action="table" title="Table">
+          <svg><use href="#i-table" /></svg>
+        </button>
+        <button data-action="hr" title="Horizontal rule">
+          <svg><use href="#i-hr" /></svg>
+        </button>
+      </div>
+
+      <div class="group view" role="group" aria-label="View">
+        <div class="segmented" role="radiogroup" aria-label="Layout">
+          <button role="radio" data-view="editor" title="Editor only">Edit</button>
+          <button role="radio" data-view="split" title="Editor and preview">Split</button>
+          <button role="radio" data-view="preview" title="Preview only">Preview</button>
+        </div>
+        <button data-action="swap" title="Swap editor and preview sides" class="hide-narrow">
+          <svg><use href="#i-swap" /></svg>
+        </button>
+        <button data-action="theme" title="Theme: auto">
+          <svg><use href="#i-theme" /></svg>
+        </button>
+        <button data-action="help" title="Help and shortcuts (F1)">
+          <svg><use href="#i-help" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="workspace" data-view="split">
+      <section id="editor-pane" aria-label="Editor"></section>
+      <section id="preview-pane" aria-label="Preview" tabindex="-1">
+        <article id="preview" class="markdown-body"></article>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <span id="stats"></span>
+      <span id="status" role="status" aria-live="polite"></span>
+    </footer>
+
+    <div id="drop-overlay" hidden><div>Drop a Markdown file to open it</div></div>
+
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <form method="dialog" class="dialog-close"><button aria-label="Close">✕</button></form>
+      <h2 id="help-title">Marklet</h2>
+      <p>
+        A portable Markdown editor that works entirely offline, in a single HTML file. Put it on a network drive, a USB
+        stick or your desktop and open it in any modern browser.
+      </p>
+
+      <h3>Keyboard shortcuts</h3>
+      <p class="muted">On macOS, use <kbd>Cmd</kbd> instead of <kbd>Ctrl</kbd>.</p>
+      <table class="shortcuts">
+        <tr>
+          <td>Save · Save as · Open</td>
+          <td><kbd>Ctrl+S</kbd> · <kbd>Ctrl+Shift+S</kbd> · <kbd>Ctrl+O</kbd></td>
+        </tr>
+        <tr>
+          <td>Bold · Italic · Strikethrough</td>
+          <td><kbd>Ctrl+B</kbd> · <kbd>Ctrl+I</kbd> · <kbd>Ctrl+Shift+X</kbd></td>
+        </tr>
+        <tr>
+          <td>Code · Link</td>
+          <td><kbd>Ctrl+E</kbd> · <kbd>Ctrl+K</kbd></td>
+        </tr>
+        <tr>
+          <td>Heading 1–6 · Normal text</td>
+          <td><kbd>Ctrl+Alt+1…6</kbd> · <kbd>Ctrl+Alt+0</kbd></td>
+        </tr>
+        <tr>
+          <td>Bulleted · Numbered list · Quote</td>
+          <td><kbd>Ctrl+Shift+8</kbd> · <kbd>Ctrl+Shift+7</kbd> · <kbd>Ctrl+Shift+.</kbd></td>
+        </tr>
+        <tr>
+          <td>Find and replace</td>
+          <td><kbd>Ctrl+F</kbd></td>
+        </tr>
+        <tr>
+          <td>Undo · Redo</td>
+          <td><kbd>Ctrl+Z</kbd> · <kbd>Ctrl+Y</kbd></td>
+        </tr>
+        <tr>
+          <td>Indent · Outdent</td>
+          <td><kbd>Tab</kbd> · <kbd>Shift+Tab</kbd> (press <kbd>Esc</kbd> then <kbd>Tab</kbd> to leave the editor)</td>
+        </tr>
+        <tr>
+          <td>Fold a section</td>
+          <td><kbd>Ctrl+Shift+[</kbd> · <kbd>Ctrl+Shift+]</kbd></td>
+        </tr>
+      </table>
+
+      <h3>Privacy and IT</h3>
+      <ul>
+        <li>
+          No installation, no server, no account, no telemetry. The page has a Content Security Policy that blocks
+          <em>all</em> network access, so remote images appear as placeholders.
+        </li>
+        <li>Autosave uses this browser's local storage, on this computer only.</li>
+        <li>
+          Saving back to the opened file uses the browser's File System Access API (Chrome, Edge). If the API is
+          unavailable or blocked by policy, Save downloads a copy instead.
+        </li>
+      </ul>
+      <p id="capabilities" class="muted"></p>
+
+      <h3>Credits</h3>
+      <p>
+        Marklet is a rewrite of
+        <a href="https://github.com/marqdown/marqdown" target="_blank" rel="noopener noreferrer">marqdown</a>, the
+        portable Markdown editor created by <strong>Reiner Kempkes</strong> (2015–2020, MIT License). The single-file
+        portable design, the live preview and the formatting shortcuts come from his project.
+      </p>
+      <p>
+        Built with <a href="https://codemirror.net/" target="_blank" rel="noopener noreferrer">CodeMirror</a>,
+        <a href="https://marked.js.org/" target="_blank" rel="noopener noreferrer">marked</a>,
+        <a href="https://github.com/bent10/marked-extensions" target="_blank" rel="noopener noreferrer"
+          >marked-footnote</a
+        >
+        and <a href="https://github.com/cure53/DOMPurify" target="_blank" rel="noopener noreferrer">DOMPurify</a>. Their
+        licenses are included at the end of this file's source.
+      </p>
+      <p class="muted">Version <span id="version"></span></p>
+    </dialog>
+
+    <div id="toast" role="alert" hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

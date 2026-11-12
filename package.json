@@ -1,0 +1,60 @@
+{
+  "name": "marklet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A portable, single-file, offline Markdown editor with live preview. Modern rewrite of marqdown.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/postbuild.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "jsdom": "^31.0.0",
+    "playwright": "^1.63.0",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.8",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/legacy-modes": "^6.5.5",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@lezer/highlight": "^1.2.5",
+    "dompurify": "^3.4.17",
+    "marked": "^18.2.0",
+    "marked-footnote": "^1.4.0"
+  },
+  "repository": "https://codeberg.org/Medenor/marklet",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "markdown",
+    "editor",
+    "offline",
+    "portable",
+    "single-file"
+  ],
+  "overrides": {
+    "minimatch": "^11.0.8"
+  }
+}

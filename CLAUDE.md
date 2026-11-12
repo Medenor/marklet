@@ -1,0 +1,1 @@
+`AGENTS.md` in this repo root is the authoritative project instructions file. Read it before any non-trivial task (implementation, refactoring, architecture decisions). It is not auto-loaded, so don't assume its contents from memory or from other docs.

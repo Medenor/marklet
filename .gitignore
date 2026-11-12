@@ -1,0 +1,23 @@
+# Secrets and local config
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# Node
+node_modules/
+coverage/
+playwright-report/
+test-results/
+# Note: dist/ is NOT ignored. dist/marklet.html is the product and is committed.
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -1,0 +1,21 @@
+# Normalise line endings for everyone (Windows, macOS, Linux).
+* text=auto eol=lf
+
+# Must stay LF or they break
+*.sh       text eol=lf
+Makefile   text eol=lf
+
+# Windows-only scripts keep CRLF
+*.ps1      text eol=crlf
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# Binary
+*.png  binary
+*.jpg  binary
+*.webp binary
+*.pdf  binary
+
+# Generated build output: hide from diffs and language stats
+dist/*.html              -diff linguist-generated
+THIRD_PARTY_LICENSES.md  linguist-generated
