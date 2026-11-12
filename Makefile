@@ -7,6 +7,11 @@
 
 FRONTEND_PORT ?= 7883
 
+# Builds and releases must use the Node.js major in .nvmrc (22) so the output is reproducible.
+# If Homebrew's node@22 is installed and not already first on PATH, put it first for those targets.
+NODE22_BIN := $(shell brew --prefix node@22 2>/dev/null)/bin
+NODE22_PATH = $(if $(wildcard $(NODE22_BIN)/node),$(NODE22_BIN):$(PATH),$(PATH))
+
 help: ## List targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
@@ -63,8 +68,10 @@ check-dist: ## Fail if the rebuilt dist/ or THIRD_PARTY_LICENSES.md differ from 
 
 check: lint test test-e2e check-dist ## All checks: run before every PR (make release runs them too)
 
+release-dry-run: export PATH := $(NODE22_PATH)
 release-dry-run: ## Run every release check and show what would be published, publish nothing
 	node scripts/release.mjs --dry-run
 
+release: export PATH := $(NODE22_PATH)
 release: ## Publish dist/marklet.html as a Codeberg release (maintainer only, see README)
 	node scripts/release.mjs
