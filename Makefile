@@ -11,7 +11,7 @@ help: ## List targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Install dependencies (exact versions from package-lock.json)
-	@node -e 'process.exit(+process.versions.node.split(".")[0] < 20)' || (echo "ERROR: Node.js 20 or newer is required." && exit 1)
+	@node -e 'process.exit(+process.versions.node.split(".")[0] < 20 ? 1 : 0)' || (echo "ERROR: Node.js 20 or newer is required." && exit 1)
 	npm ci
 	@echo "✓ Done. Run: make dev"
 
