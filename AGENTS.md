@@ -1,6 +1,6 @@
 # Marklet — Guide for agents
 
-Marklet is a portable Markdown editor with live preview, shipped as one offline HTML file (`dist/marklet.html`) for people who can't install software, typically on locked-down corporate machines. Not GxP-relevant: it is a general-purpose text editor; files it produces are not regulated records.
+Marklet is a portable Markdown editor with live preview, shipped as one offline HTML file (`dist/marklet.html`) for people who can't install software, typically on locked-down corporate machines.
 
 Package manager: `npm` (not yarn or pnpm). Hosted on Codeberg (`codeberg.org/Medenor/marklet`), public. No CI: checks run locally.
 

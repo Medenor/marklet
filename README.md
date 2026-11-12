@@ -10,7 +10,7 @@ Download `marklet.html`, put it on your desktop, a network share or a USB stick,
 
 > Marklet is a modern rewrite of **[marqdown](https://github.com/marqdown/marqdown)**, the portable Markdown editor created by **Reiner Kempkes** (2015–2020). The original is no longer maintained. Its core idea, a single self-contained HTML file with an editor, a live preview and formatting shortcuts, is kept here and rebuilt on current, maintained libraries. All credit for the concept goes to the original project. See [Credits](#credits).
 
-**Intended use:** writing and reading Markdown documents (notes, specifications, draft procedures, README files) on machines where installing an editor isn't allowed. Marklet is not GxP-relevant: it is a general-purpose text editor, and the files it saves are ordinary text files. Whether a document you write with it becomes a regulated record is decided by your own document-control process, not by the tool.
+**Intended use:** writing and reading Markdown documents (notes, specifications, draft procedures, README files) on machines where installing an editor isn't allowed. Marklet is a general-purpose text editor, and the files it saves are ordinary text files.
 
 ## Download
 
