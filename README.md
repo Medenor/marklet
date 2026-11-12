@@ -204,3 +204,11 @@ dist/marklet.html     The built product (committed)
 ## License
 
 [MIT](LICENSE).
+
+## Disclaimer – Spec Driven Development & AI collaboration
+
+This repository was developed using a _Spec Driven Development_ approach, with extensive AI collaboration throughout the process.
+
+AI is used to build and brainstorm detailed specifications before delegating coding tasks. The development follows a collaborative process where AI handles implementation, while human oversight ensures quality through review, testing, and debugging.
+
+Transparency matters: this project reflects a comprehensive human–AI collaborative workflow from specification to deployment.
