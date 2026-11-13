@@ -115,7 +115,7 @@ export class Forge {
         res.status === 401
           ? " (token missing, expired or revoked)"
           : res.status === 403
-            ? " (token lacks write access to repositories)"
+            ? " (token lacks a required scope or write access to repositories; the response below names the scope)"
             : "";
       throw new ReleaseError(`${method} ${path} failed: HTTP ${res.status}${hint}. ${text}`);
     }
@@ -166,14 +166,25 @@ export class Forge {
 
 const defaultLog = (msg) => process.stdout.write(msg + "\n");
 
+/**
+ * The maintainer's token file wins over $CODEBERG_TOKEN: a token exported for
+ * other tools in a shell profile must not silently override the release token.
+ * CI, which has no token file, still uses the environment variable.
+ */
 function readToken(env, log) {
-  if (env.CODEBERG_TOKEN?.trim()) return env.CODEBERG_TOKEN.trim();
   const file = join(env.HOME || env.USERPROFILE || homedir(), ".config", "marklet", "codeberg-token");
-  if (!existsSync(file)) return null;
-  if (process.platform !== "win32" && (statSync(file).mode & 0o077) !== 0) {
-    log(`  ! ${file} is readable by other users. Run: chmod 600 ${file}`);
+  const fromEnv = env.CODEBERG_TOKEN?.trim() || null;
+  if (existsSync(file)) {
+    if (process.platform !== "win32" && (statSync(file).mode & 0o077) !== 0) {
+      log(`  ! ${file} is readable by other users. Run: chmod 600 ${file}`);
+    }
+    const fromFile = readFileSync(file, "utf8").trim() || null;
+    if (fromFile) {
+      if (fromEnv && fromEnv !== fromFile) log(`  ! CODEBERG_TOKEN is ignored: using ${file}.`);
+      return fromFile;
+    }
   }
-  return readFileSync(file, "utf8").trim() || null;
+  return fromEnv;
 }
 
 /**

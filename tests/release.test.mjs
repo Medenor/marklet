@@ -216,7 +216,7 @@ describe("release run", () => {
     dryRun: false,
     install: null,
     checks: [],
-    env: { CODEBERG_TOKEN: "secret-token", RELEASE_FORGE_URL: forge.state.origin },
+    env: { CODEBERG_TOKEN: "secret-token", RELEASE_FORGE_URL: forge.state.origin, HOME: root },
     log: (m) => logs.push(m),
     ...extra,
   });
@@ -331,7 +331,7 @@ describe("release run", () => {
   it("refuses an invalid token or a token without write access", async () => {
     const { work } = makeRepo(root);
     await expect(
-      release(opts(work, { env: { CODEBERG_TOKEN: "wrong", RELEASE_FORGE_URL: forge.state.origin } })),
+      release(opts(work, { env: { CODEBERG_TOKEN: "wrong", RELEASE_FORGE_URL: forge.state.origin, HOME: root } })),
     ).rejects.toThrow(/401/);
     forge.server.close();
     forge = await fakeForge({ push: false });
@@ -343,6 +343,14 @@ describe("release run", () => {
     mkdirSync(join(root, ".config", "marklet"), { recursive: true });
     writeFileSync(join(root, ".config", "marklet", "codeberg-token"), "secret-token\n", { mode: 0o600 });
     await release(opts(work, { env: { RELEASE_FORGE_URL: forge.state.origin, HOME: root } }));
+    expect(forge.state.releases).toHaveLength(1);
+  });
+
+  it("prefers the token file over CODEBERG_TOKEN", async () => {
+    const { work } = makeRepo(root);
+    mkdirSync(join(root, ".config", "marklet"), { recursive: true });
+    writeFileSync(join(root, ".config", "marklet", "codeberg-token"), "secret-token\n", { mode: 0o600 });
+    await release(opts(work, { env: { CODEBERG_TOKEN: "wrong", RELEASE_FORGE_URL: forge.state.origin, HOME: root } }));
     expect(forge.state.releases).toHaveLength(1);
   });
 
