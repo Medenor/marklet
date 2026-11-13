@@ -80,18 +80,18 @@ To check the policy yourself, open the file in a text editor and look for `Conte
 
 The two projects share an idea but not a focus. This table compares marqdown 1.8.0 (January 2020) with Marklet 1.0.0.
 
-|               | marqdown 1.8.0                                                  | Marklet                                                                                  |
-| ------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Focus         | Minimal, standalone footprint                                   | Locked-down corporate machines                                                           |
-| Packaging     | Body compressed with lz-string, about half the size (~330 kB)   | Plain minified code, no runtime decompression, which some security scanners flag (~900 kB) |
-| Editor        | CodeMirror 5                                                    | CodeMirror 6: search, folding, multi-cursor                                              |
-| Markdown      | marked 0.8                                                      | Current marked, with footnotes and heading anchors                                       |
-| Embedded HTML | Rendered as written, by design                                  | Sanitised with DOMPurify, for opening files received from others; a CSP blocks all network access |
-| Files         | Open and download; accepted by reported MIME type               | Open and save in place, drag and drop; accepted by file extension                        |
-| Scroll sync   | Percentage-based                                                | Line-based, both directions                                                              |
-| Export        | HTML, print to PDF                                              | Styled standalone HTML, print to PDF, copy as formatted text                             |
-| Look          | Bootstrap 3, light theme                                        | Native UI, light/dark/auto themes                                                        |
-| Build         | Gulp, CoffeeScript, Pug, LESS                                   | Vite, TypeScript, plain CSS, unit and browser tests                                      |
+|               | marqdown 1.8.0                                                | Marklet                                                                                           |
+| ------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Focus         | Minimal, standalone footprint                                 | Locked-down corporate machines                                                                    |
+| Packaging     | Body compressed with lz-string, about half the size (~330 kB) | Plain minified code, no runtime decompression, which some security scanners flag (~900 kB)        |
+| Editor        | CodeMirror 5                                                  | CodeMirror 6: search, folding, multi-cursor                                                       |
+| Markdown      | marked 0.8                                                    | Current marked, with footnotes and heading anchors                                                |
+| Embedded HTML | Rendered as written, by design                                | Sanitised with DOMPurify, for opening files received from others; a CSP blocks all network access |
+| Files         | Open and download; accepted by reported MIME type             | Open and save in place, drag and drop; accepted by file extension                                 |
+| Scroll sync   | Percentage-based                                              | Line-based, both directions                                                                       |
+| Export        | HTML, print to PDF                                            | Styled standalone HTML, print to PDF, copy as formatted text                                      |
+| Look          | Bootstrap 3, light theme                                      | Native UI, light/dark/auto themes                                                                 |
+| Build         | Gulp, CoffeeScript, Pug, LESS                                 | Vite, TypeScript, plain CSS, unit and browser tests                                               |
 
 ## Development
 
