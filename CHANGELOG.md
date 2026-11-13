@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Reworded the credit to marqdown in the README and CHANGELOG, following feedback from its author.
+- Reworded the credit to marqdown in the README, CHANGELOG, in-app help dialog and welcome text, following feedback from its author.
 
 ## [1.0.0] - 2026-11-12
 

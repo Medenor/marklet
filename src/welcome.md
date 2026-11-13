@@ -44,4 +44,4 @@ run;
 
 ---
 
-Marklet is a modern rewrite of [marqdown](https://github.com/marqdown/marqdown) by Reiner Kempkes (2015–2020), released under the MIT License.
+Marklet is inspired by [marqdown](https://github.com/marqdown/marqdown), the portable Markdown editor created by Reiner Kempkes in 2015. Both are released under the MIT License.
