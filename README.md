@@ -8,7 +8,7 @@
 
 Download `marklet.html`, put it on your desktop, a network share or a USB stick, and open it in your browser. That's it.
 
-> Marklet is a modern rewrite of **[marqdown](https://github.com/marqdown/marqdown)**, the portable Markdown editor created by **Reiner Kempkes** (2015–2020). The original is no longer maintained. Its core idea, a single self-contained HTML file with an editor, a live preview and formatting shortcuts, is kept here and rebuilt on current, maintained libraries. All credit for the concept goes to the original project. See [Credits](#credits).
+> Marklet is inspired by **[marqdown](https://github.com/marqdown/marqdown)**, the portable Markdown editor created by **Reiner Kempkes** in 2015. It keeps marqdown's core idea, a single self-contained HTML file with an editor, a live preview and formatting shortcuts, and takes it in a different direction: a richer editor and safeguards aimed at locked-down corporate machines. marqdown focuses on a minimal, standalone footprint, and remains the better fit if that is what you need. All credit for the concept goes to the original project. See [Credits](#credits).
 
 **Intended use:** writing and reading Markdown documents (notes, specifications, draft procedures, README files) on machines where installing an editor isn't allowed. Marklet is a general-purpose text editor, and the files it saves are ordinary text files.
 
@@ -76,18 +76,22 @@ To check the policy yourself, open the file in a text editor and look for `Conte
 - **Autosave** is per browser and per profile. Firefox may keep separate storage for each `file://` location, so a moved or renamed copy of the HTML file can start with an empty session.
 - **Not included:** Mermaid diagrams and math (KaTeX) would add 0.3–3 MB, against the goal of a small tool.
 
-## What changed from marqdown v1
+### How Marklet differs from marqdown
 
-|             | marqdown v1 (2020)                                                                   | Marklet                                                            |
-| ----------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| Editor      | CodeMirror 5                                                                         | CodeMirror 6: search, folding, multi-cursor, better mobile support |
-| Markdown    | marked 0.8                                                                           | Current marked, with footnotes and heading anchors                 |
-| Security    | No sanitising: a crafted `.md` file could run script                                 | DOMPurify, plus a hash-based CSP that blocks all network access    |
-| Files       | Upload / download only. `.md` files often rejected because of the reported MIME type | Open and save in place, drag and drop, accepted by file extension  |
-| Scroll sync | Percentage-based                                                                     | Line-based, both directions                                        |
-| Export      | Unstyled HTML                                                                        | Styled standalone HTML, print/PDF, copy as formatted text          |
-| Look        | Bootstrap 3, light only                                                              | Native UI, light/dark/auto themes                                  |
-| Build       | Gulp 3, CoffeeScript, Pug, LESS (no longer builds on current Node.js)                | Vite, TypeScript, plain CSS, unit and browser tests                |
+The two projects share an idea but not a focus. This table compares marqdown 1.8.0 (January 2020) with Marklet 1.0.0.
+
+|               | marqdown 1.8.0                                                  | Marklet                                                                                  |
+| ------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Focus         | Minimal, standalone footprint                                   | Locked-down corporate machines                                                           |
+| Packaging     | Body compressed with lz-string, about half the size (~330 kB)   | Plain minified code, no runtime decompression, which some security scanners flag (~900 kB) |
+| Editor        | CodeMirror 5                                                    | CodeMirror 6: search, folding, multi-cursor                                              |
+| Markdown      | marked 0.8                                                      | Current marked, with footnotes and heading anchors                                       |
+| Embedded HTML | Rendered as written, by design                                  | Sanitised with DOMPurify, for opening files received from others; a CSP blocks all network access |
+| Files         | Open and download; accepted by reported MIME type               | Open and save in place, drag and drop; accepted by file extension                        |
+| Scroll sync   | Percentage-based                                                | Line-based, both directions                                                              |
+| Export        | HTML, print to PDF                                              | Styled standalone HTML, print to PDF, copy as formatted text                             |
+| Look          | Bootstrap 3, light theme                                        | Native UI, light/dark/auto themes                                                        |
+| Build         | Gulp, CoffeeScript, Pug, LESS                                   | Vite, TypeScript, plain CSS, unit and browser tests                                      |
 
 ## Development
 
@@ -196,7 +200,7 @@ dist/marklet.html     The built product (committed)
 
 ## Credits
 
-- **[marqdown](https://github.com/marqdown/marqdown)** by **Reiner Kempkes**, MIT License, © 2015. This project continues its idea: the single-file portable design, the side-by-side live preview, the formatting hotkeys and the browser-storage session restore all come from marqdown. Marklet is a rewrite and contains no code from the original, but its license notice is kept in [LICENSE](LICENSE) out of respect for the original work.
+- **[marqdown](https://github.com/marqdown/marqdown)** by **Reiner Kempkes**, MIT License, © 2015. This project builds on its idea: the single-file portable design, the side-by-side live preview, the formatting hotkeys and the browser-storage session restore all come from marqdown. Marklet is a rewrite and contains no code from the original, but its license notice is kept in [LICENSE](LICENSE) out of respect for the original work.
 - [CodeMirror](https://codemirror.net/) by Marijn Haverbeke and contributors (MIT).
 - [marked](https://marked.js.org/) (MIT) and [marked-footnote](https://github.com/bent10/marked-extensions) (MIT).
 - [DOMPurify](https://github.com/cure53/DOMPurify) by Cure53 (MPL-2.0 or Apache-2.0).
