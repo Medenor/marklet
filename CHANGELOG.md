@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-13
+
 ### Changed
 
 - Reworded the credit to marqdown in the README, CHANGELOG, in-app help dialog and welcome text, following feedback from its author.
@@ -40,5 +42,6 @@ First release of Marklet, inspired by [marqdown](https://github.com/marqdown/mar
 - All rendered HTML is sanitised with DOMPurify, so a crafted Markdown file cannot run script. (marqdown renders embedded HTML as written, by design.)
 - Content Security Policy: no network access at all, and scripts allowed by hash only.
 
-[Unreleased]: https://codeberg.org/Medenor/marklet/compare/v1.0.0...HEAD
+[Unreleased]: https://codeberg.org/Medenor/marklet/compare/v1.0.1...HEAD
+[1.0.1]: https://codeberg.org/Medenor/marklet/releases/tag/v1.0.1
 [1.0.0]: https://codeberg.org/Medenor/marklet/releases/tag/v1.0.0
