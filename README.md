@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="marklet.jpg" alt="Marklet logo" width="160">
+  <img src="marklet.webp" alt="Marklet logo" width="160">
 </p>
 
 # Marklet
