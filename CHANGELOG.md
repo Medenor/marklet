@@ -6,9 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Reworded the credit to marqdown in the README and CHANGELOG, following feedback from its author.
+
 ## [1.0.0] - 2026-11-12
 
-First release of Marklet, a from-scratch rewrite of [marqdown](https://github.com/marqdown/marqdown) 1.8.0 by Reiner Kempkes (unmaintained since 2020).
+First release of Marklet, inspired by [marqdown](https://github.com/marqdown/marqdown) 1.8.0 by Reiner Kempkes and rewritten from scratch with a different focus: locked-down corporate machines.
 
 ### Added
 
@@ -33,7 +37,7 @@ First release of Marklet, a from-scratch rewrite of [marqdown](https://github.co
 
 ### Security
 
-- All rendered HTML is sanitised with DOMPurify. In marqdown, a crafted Markdown file could run script.
+- All rendered HTML is sanitised with DOMPurify, so a crafted Markdown file cannot run script. (marqdown renders embedded HTML as written, by design.)
 - Content Security Policy: no network access at all, and scripts allowed by hash only.
 
 [Unreleased]: https://codeberg.org/Medenor/marklet/compare/v1.0.0...HEAD
