@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-18
+
 ### Changed
 
 - The project moved from Codeberg to GitHub: [github.com/Medenor/marklet](https://github.com/Medenor/marklet). Releases are published there by `make release`, which now takes its token from `gh auth token` (or `GITHUB_TOKEN`) instead of a Codeberg token.
@@ -46,6 +48,7 @@ First release of Marklet, inspired by [marqdown](https://github.com/marqdown/mar
 - All rendered HTML is sanitised with DOMPurify, so a crafted Markdown file cannot run script. (marqdown renders embedded HTML as written, by design.)
 - Content Security Policy: no network access at all, and scripts allowed by hash only.
 
-[Unreleased]: https://github.com/Medenor/marklet/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/Medenor/marklet/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Medenor/marklet/releases/tag/v1.1.0
 [1.0.1]: https://github.com/Medenor/marklet/releases/tag/v1.0.1
 [1.0.0]: https://github.com/Medenor/marklet/releases/tag/v1.0.0
