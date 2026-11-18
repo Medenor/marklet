@@ -43,7 +43,7 @@
     "marked": "^18.2.0",
     "marked-footnote": "^1.4.0"
   },
-  "repository": "https://codeberg.org/Medenor/marklet",
+  "repository": "https://github.com/Medenor/marklet",
   "engines": {
     "node": ">=20"
   },
