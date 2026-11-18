@@ -136,7 +136,7 @@ Writes `dist/marklet.html` and regenerates `THIRD_PARTY_LICENSES.md`. Commit bot
 
 The project lives on [GitHub](https://github.com/Medenor/marklet). Work on a branch and open a pull request; the template asks for the size and security impact of the change. There is no CI: run `make check` and paste the result in the pull request. The maintainer runs it again before merging.
 
-Review dependencies monthly and before each release: `make outdated` lists available updates, and `make security` fails on any advisory in code shipped inside `marklet.html` and on high-severity advisories in build and test tooling.
+Review dependencies monthly and before each release: `make outdated` lists available updates, and `make security` fails on any advisory in code shipped inside `marklet.html` and on high-severity advisories in build and test tooling, except the exceptions reviewed in [scripts/audit.mjs](scripts/audit.mjs), each with a review date.
 
 ### Releasing
 

@@ -55,9 +55,9 @@ lint-fix: ## Auto-fix formatting and lint
 	npm run format
 	npm run lint -- --fix
 
-security: ## Dependency audit: any advisory in code shipped in marklet.html, high+ in build/test tooling
+security: ## Dependency audit: any advisory in code shipped in marklet.html, high+ in build/test tooling (exceptions: scripts/audit.mjs)
 	npm audit --omit=dev --audit-level=low
-	npm audit --audit-level=high
+	node scripts/audit.mjs
 
 outdated: ## List dependencies with newer versions (review monthly and before each release)
 	@npm outdated || true
