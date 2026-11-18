@@ -75,5 +75,5 @@ release-dry-run: ## Run every release check and show what would be published, pu
 	$(NODE22_EXE) scripts/release.mjs --dry-run
 
 release: export PATH := $(NODE22_PATH)
-release: ## Publish dist/marklet.html as a Codeberg release (maintainer only, see README)
+release: ## Publish dist/marklet.html as a GitHub release (maintainer only, see README)
 	$(NODE22_EXE) scripts/release.mjs

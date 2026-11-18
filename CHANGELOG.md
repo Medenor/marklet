@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The project moved from Codeberg to GitHub: [github.com/Medenor/marklet](https://github.com/Medenor/marklet). Releases are published there by `make release`, which now takes its token from `gh auth token` (or `GITHUB_TOKEN`) instead of a Codeberg token.
+
 ## [1.0.1] - 2026-11-13
 
 ### Changed
@@ -28,7 +32,7 @@ First release of Marklet, inspired by [marqdown](https://github.com/marqdown/mar
 - Highlighting for more languages, including R, SAS, PowerShell, Go, Rust, Kotlin and SQL dialects.
 - Automatic migration of the last marqdown v1 session.
 - Unit and browser end-to-end tests and reproducible builds.
-- `make release`: publishes a Codeberg release from the maintainer's machine, with `marklet.html` and its SHA-256 checksum, after running every check and confirming the build matches the committed file. `make release-dry-run` shows what would be published.
+- `make release`: publishes a GitHub release from the maintainer's machine, with `marklet.html` and its SHA-256 checksum, after running every check and confirming the build matches the committed file. `make release-dry-run` shows what would be published.
 
 ### Changed (compared with marqdown 1.8.0)
 
@@ -42,6 +46,6 @@ First release of Marklet, inspired by [marqdown](https://github.com/marqdown/mar
 - All rendered HTML is sanitised with DOMPurify, so a crafted Markdown file cannot run script. (marqdown renders embedded HTML as written, by design.)
 - Content Security Policy: no network access at all, and scripts allowed by hash only.
 
-[Unreleased]: https://codeberg.org/Medenor/marklet/compare/v1.0.1...HEAD
-[1.0.1]: https://codeberg.org/Medenor/marklet/releases/tag/v1.0.1
-[1.0.0]: https://codeberg.org/Medenor/marklet/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Medenor/marklet/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/Medenor/marklet/releases/tag/v1.0.1
+[1.0.0]: https://github.com/Medenor/marklet/releases/tag/v1.0.0

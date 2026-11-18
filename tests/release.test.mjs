@@ -1,5 +1,5 @@
 // Tests for scripts/release.mjs: pure helpers, then whole release runs against
-// a fake Forgejo API and a throwaway git remote. Nothing touches Codeberg.
+// a fake GitHub API and a throwaway git remote. Nothing touches GitHub.
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createServer } from "node:http";
@@ -34,8 +34,8 @@ const CHANGELOG = `# Changelog
 
 - First release.
 
-[Unreleased]: https://codeberg.org/Medenor/marklet/compare/v1.1.0...HEAD
-[1.1.0]: https://codeberg.org/Medenor/marklet/releases/tag/v1.1.0
+[Unreleased]: https://github.com/Medenor/marklet/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Medenor/marklet/releases/tag/v1.1.0
 `;
 
 describe("helpers", () => {
@@ -56,36 +56,36 @@ describe("helpers", () => {
   });
 
   it("parses the repository URL", () => {
-    expect(parseRepository("https://codeberg.org/Medenor/marklet")).toEqual({
-      forge: "https://codeberg.org",
+    expect(parseRepository("https://github.com/Medenor/marklet")).toEqual({
+      forge: "https://github.com",
       owner: "Medenor",
       repo: "marklet",
     });
-    expect(parseRepository("https://codeberg.org/Medenor/marklet.git").repo).toBe("marklet");
-    expect(() => parseRepository("git@codeberg.org:Medenor/marklet.git")).toThrow(ReleaseError);
+    expect(parseRepository("https://github.com/Medenor/marklet.git").repo).toBe("marklet");
+    expect(() => parseRepository("git@github.com:Medenor/marklet.git")).toThrow(ReleaseError);
   });
 
   it("matches HTTPS and SSH remotes, rejects others", () => {
-    const t = { forge: "https://codeberg.org", owner: "Medenor", repo: "marklet" };
-    expect(remoteMatches("https://codeberg.org/Medenor/marklet.git", t)).toBe(true);
-    expect(remoteMatches("git@codeberg.org:Medenor/marklet.git", t)).toBe(true);
-    expect(remoteMatches("ssh://git@codeberg.org/Medenor/marklet.git", t)).toBe(true);
-    expect(remoteMatches("https://github.com/Medenor/marklet.git", t)).toBe(false);
-    expect(remoteMatches("https://codeberg.org/Someone/marklet.git", t)).toBe(false);
+    const t = { forge: "https://github.com", owner: "Medenor", repo: "marklet" };
+    expect(remoteMatches("https://github.com/Medenor/marklet.git", t)).toBe(true);
+    expect(remoteMatches("git@github.com:Medenor/marklet.git", t)).toBe(true);
+    expect(remoteMatches("ssh://git@github.com/Medenor/marklet.git", t)).toBe(true);
+    expect(remoteMatches("https://codeberg.org/Medenor/marklet.git", t)).toBe(false);
+    expect(remoteMatches("https://github.com/Someone/marklet.git", t)).toBe(false);
   });
 
   it("redacts credentials in URLs", () => {
-    expect(redactCredentials("https://user:s3cret@codeberg.org/a/b.git")).toBe("https://***@codeberg.org/a/b.git");
+    expect(redactCredentials("https://user:s3cret@github.com/a/b.git")).toBe("https://***@github.com/a/b.git");
     expect(redactCredentials("fatal: https://tok@host/x failed")).toBe("fatal: https://***@host/x failed");
-    expect(redactCredentials("git@codeberg.org:a/b.git")).toBe("git@codeberg.org:a/b.git");
+    expect(redactCredentials("git@github.com:a/b.git")).toBe("git@github.com:a/b.git");
   });
 
   it("compares origins", () => {
-    expect(sameOrigin("https://codeberg.org/attachments/1", "https://codeberg.org/api/v1")).toBe(true);
-    expect(sameOrigin("/attachments/1", "https://codeberg.org/api/v1")).toBe(true);
-    expect(sameOrigin("https://evil.example/x", "https://codeberg.org/api/v1")).toBe(false);
-    expect(sameOrigin("http://codeberg.org/x", "https://codeberg.org/api/v1")).toBe(false);
-    expect(sameOrigin("https://codeberg.org.evil.example/x", "https://codeberg.org/api/v1")).toBe(false);
+    expect(sameOrigin("https://api.github.com/repos/a/b/releases/assets/1", "https://api.github.com")).toBe(true);
+    expect(sameOrigin("/repos/a/b", "https://api.github.com")).toBe(true);
+    expect(sameOrigin("https://evil.example/x", "https://api.github.com")).toBe(false);
+    expect(sameOrigin("http://api.github.com/x", "https://api.github.com")).toBe(false);
+    expect(sameOrigin("https://api.github.com.evil.example/x", "https://api.github.com")).toBe(false);
   });
 
   it("reads the Node major version from .nvmrc", () => {
@@ -101,9 +101,11 @@ describe("helpers", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Fake Forgejo API
+// Fake GitHub API (api base = <origin>/api, uploads base = <origin>/uploads)
 
-function fakeForge({ token = "secret-token", push = true, omitAssets = false } = {}) {
+const REPO = "/api/repos/Medenor/marklet";
+
+function fakeGitHub({ token = "secret-token", push = true, omitAssets = false } = {}) {
   const state = { releases: [], files: new Map(), requests: [] };
   let nextId = 1;
   const server = createServer(async (req, res) => {
@@ -116,48 +118,44 @@ function fakeForge({ token = "secret-token", push = true, omitAssets = false } =
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(json === undefined ? "" : JSON.stringify(json));
     };
-    if (url.pathname.startsWith("/files/")) {
+    if (req.headers.authorization !== `Bearer ${token}`) return send(401, { message: "Bad credentials" });
+    let m;
+    if (req.method === "GET" && url.pathname === "/api/user") return send(200, { login: "medenor" });
+    if (req.method === "GET" && url.pathname === REPO) return send(200, { permissions: { push } });
+    if (req.method === "GET" && (m = /^\/api\/files\/(\d+)\/(.+)$/.exec(url.pathname))) {
       const f = state.files.get(url.pathname);
       return f ? (res.writeHead(200), res.end(f)) : send(404, {});
     }
-    if (req.headers.authorization !== `token ${token}`) return send(401, { message: "bad token" });
-    const base = "/api/v1/repos/Medenor/marklet";
-    if (req.method === "GET" && url.pathname === "/api/v1/user") return send(200, { login: "medenor" });
-    if (req.method === "GET" && url.pathname === base) return send(200, { permissions: { push } });
-    let m;
-    if (req.method === "GET" && (m = /^\/api\/v1\/repos\/Medenor\/marklet\/releases\/tags\/(.+)$/.exec(url.pathname))) {
+    if (req.method === "GET" && (m = /^\/api\/repos\/Medenor\/marklet\/releases\/tags\/(.+)$/.exec(url.pathname))) {
       const rel = state.releases.find((r) => r.tag_name === decodeURIComponent(m[1]));
-      return rel ? send(200, rel) : send(404, { message: "not found" });
+      return rel ? send(200, rel) : send(404, { message: "Not Found" });
     }
-    if (req.method === "POST" && url.pathname === `${base}/releases`) {
+    if (req.method === "POST" && url.pathname === `${REPO}/releases`) {
       const opt = JSON.parse(body.toString());
       const rel = {
         ...opt,
         id: nextId++,
         assets: [],
-        html_url: `https://forge.test/Medenor/marklet/releases/tag/${opt.tag_name}`,
+        html_url: `https://github.com/Medenor/marklet/releases/tag/${opt.tag_name}`,
       };
       state.releases.push(rel);
-      if (omitAssets) {
-        return send(201, { ...rel, assets: undefined }); // JSON drops undefined fields
-      }
-      return send(201, rel);
+      return send(201, omitAssets ? { ...rel, assets: undefined } : rel); // JSON drops undefined fields
     }
     if (
       req.method === "POST" &&
-      (m = /^\/api\/v1\/repos\/Medenor\/marklet\/releases\/(\d+)\/assets$/.exec(url.pathname))
+      (m = /^\/uploads\/repos\/Medenor\/marklet\/releases\/(\d+)\/assets$/.exec(url.pathname))
     ) {
       const rel = state.releases.find((r) => r.id === Number(m[1]));
-      const form = await new Request("http://x", { method: "POST", headers: req.headers, body }).formData();
-      const file = form.get("attachment");
-      const content = Buffer.from(await file.arrayBuffer());
-      const path = `/files/${rel.id}/${url.searchParams.get("name")}`;
-      state.files.set(path, content);
+      const name = url.searchParams.get("name");
+      if (req.headers["content-type"] === undefined) return send(422, { message: "no content type" });
+      const path = `/api/files/${rel.id}/${name}`;
+      state.files.set(path, body);
       const asset = {
         id: nextId++,
-        name: url.searchParams.get("name"),
-        size: content.length,
-        browser_download_url: `${state.origin}${path}`,
+        name,
+        size: body.length,
+        url: `${state.origin}${path}`,
+        browser_download_url: `https://github.com/Medenor/marklet/releases/download/${rel.tag_name}/${name}`,
       };
       rel.assets.push(asset);
       return send(201, asset);
@@ -173,15 +171,15 @@ function fakeForge({ token = "secret-token", push = true, omitAssets = false } =
 }
 
 // ---------------------------------------------------------------------------
-// Throwaway repository with a bare "Codeberg" remote
+// Throwaway repository with a bare "GitHub" remote
 
 function sh(cwd, ...args) {
   return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
 function makeRepo(root, { version = "1.1.0", changelog = CHANGELOG, nvmrc = null } = {}) {
-  // The remote path contains the forge host and owner/repo, like a real Codeberg URL would.
-  const remote = join(root, "127.0.0.1", "Medenor", "marklet.git");
+  // The remote path contains the forge host and owner/repo, like a real GitHub URL would.
+  const remote = join(root, "github.com", "Medenor", "marklet.git");
   mkdirSync(remote, { recursive: true });
   sh(remote, "init", "--quiet", "--bare", "--initial-branch=main");
   const work = join(root, "work");
@@ -196,7 +194,7 @@ function makeRepo(root, { version = "1.1.0", changelog = CHANGELOG, nvmrc = null
     sh(work, "config", k, v);
   writeFileSync(
     join(work, "package.json"),
-    JSON.stringify({ version, repository: "https://codeberg.org/Medenor/marklet" }),
+    JSON.stringify({ version, repository: "https://github.com/Medenor/marklet" }),
   );
   writeFileSync(join(work, "CHANGELOG.md"), changelog);
   writeFileSync(join(work, "dist", "marklet.html"), "<!doctype html><title>Marklet</title>");
@@ -210,24 +208,30 @@ function makeRepo(root, { version = "1.1.0", changelog = CHANGELOG, nvmrc = null
 }
 
 describe("release run", () => {
-  let root, forge, logs;
+  let root, github, logs;
+  const baseEnv = () => ({
+    RELEASE_API_URL: `${github.state.origin}/api`,
+    RELEASE_UPLOADS_URL: `${github.state.origin}/uploads`,
+    HOME: root,
+  });
   const opts = (work, extra = {}) => ({
     cwd: work,
     dryRun: false,
     install: null,
     checks: [],
-    env: { CODEBERG_TOKEN: "secret-token", RELEASE_FORGE_URL: forge.state.origin, HOME: root },
+    useGhCli: false,
+    env: { ...baseEnv(), GITHUB_TOKEN: "secret-token" },
     log: (m) => logs.push(m),
     ...extra,
   });
 
   beforeEach(async () => {
     root = mkdtempSync(join(tmpdir(), "marklet-release-test-"));
-    forge = await fakeForge();
+    github = await fakeGitHub();
     logs = [];
   });
   afterEach(() => {
-    forge.server.close();
+    github.server.close();
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -239,7 +243,7 @@ describe("release run", () => {
     expect(sh(remote, "rev-parse", "v1.1.0^{commit}")).toBe(head);
     expect(sh(remote, "cat-file", "-t", "v1.1.0")).toBe("tag"); // annotated
 
-    const [rel] = forge.state.releases;
+    const [rel] = github.state.releases;
     expect(rel).toMatchObject({
       tag_name: "v1.1.0",
       name: "Marklet 1.1.0",
@@ -250,18 +254,18 @@ describe("release run", () => {
     expect(rel.assets.map((a) => a.name)).toEqual(["marklet.html", "marklet.html.sha256"]);
 
     const html = "<!doctype html><title>Marklet</title>";
-    expect(forge.state.files.get(`/files/${rel.id}/marklet.html`).toString()).toBe(html);
-    expect(forge.state.files.get(`/files/${rel.id}/marklet.html.sha256`).toString()).toBe(
+    expect(github.state.files.get(`/api/files/${rel.id}/marklet.html`).toString()).toBe(html);
+    expect(github.state.files.get(`/api/files/${rel.id}/marklet.html.sha256`).toString()).toBe(
       `${sha256(Buffer.from(html))}  marklet.html\n`,
     );
-    expect(result.url).toBe("https://forge.test/Medenor/marklet/releases/tag/v1.1.0");
+    expect(result.url).toBe("https://github.com/Medenor/marklet/releases/tag/v1.1.0");
   });
 
   it("sends the token only in the Authorization header", async () => {
     const { work } = makeRepo(root);
     await release(opts(work));
-    for (const r of forge.state.requests.filter((r) => r.path.startsWith("/api/"))) {
-      expect(r.auth).toBe("token secret-token");
+    for (const r of github.state.requests) {
+      expect(r.auth).toBe("Bearer secret-token");
       expect(r.path).not.toContain("secret-token");
     }
     expect(logs.join("\n")).not.toContain("secret-token");
@@ -270,29 +274,27 @@ describe("release run", () => {
   it("resumes after a partial failure without duplicating anything", async () => {
     const { work } = makeRepo(root);
     await release(opts(work));
-    const [rel] = forge.state.releases;
+    const [rel] = github.state.releases;
     rel.assets.pop(); // simulate the checksum upload failing last time
     await release(opts(work));
-    expect(forge.state.releases).toHaveLength(1);
-    expect(forge.state.releases[0].assets.map((a) => a.name)).toEqual(["marklet.html", "marklet.html.sha256"]);
+    expect(github.state.releases).toHaveLength(1);
+    expect(github.state.releases[0].assets.map((a) => a.name)).toEqual(["marklet.html", "marklet.html.sha256"]);
     expect(logs.join("\n")).toMatch(/resuming/);
   });
 
   it("refuses to overwrite a published asset that differs", async () => {
     const { work } = makeRepo(root);
     await release(opts(work));
-    const [rel] = forge.state.releases;
-    forge.state.files.set(`/files/${rel.id}/marklet.html`, Buffer.from("tampered"));
+    const [rel] = github.state.releases;
+    github.state.files.set(`/api/files/${rel.id}/marklet.html`, Buffer.from("tampered"));
     await expect(release(opts(work))).rejects.toThrow(/differs from this build/);
   });
 
   it("dry run publishes nothing and works without a token", async () => {
     const { work, remote } = makeRepo(root);
-    const result = await release(
-      opts(work, { dryRun: true, env: { RELEASE_FORGE_URL: forge.state.origin, HOME: root } }),
-    );
+    const result = await release(opts(work, { dryRun: true, env: baseEnv() }));
     expect(result.dryRun).toBe(true);
-    expect(forge.state.releases).toHaveLength(0);
+    expect(github.state.releases).toHaveLength(0);
     expect(sh(remote, "tag")).toBe("");
     expect(sh(work, "tag")).toBe("");
     expect(logs.join("\n")).toContain("Table of contents.");
@@ -303,8 +305,8 @@ describe("release run", () => {
     ["uncommitted changes", (w) => writeFileSync(join(w, "README.md"), "x"), /uncommitted/],
     ["unpushed commit", (w) => sh(w, "commit", "--quiet", "--allow-empty", "-m", "local"), /differs from origin\/main/],
     [
-      "remote is not Codeberg/Medenor/marklet",
-      (w) => sh(w, "remote", "set-url", "origin", "https://github.com/Medenor/marklet.git"),
+      "remote is not GitHub/Medenor/marklet",
+      (w) => sh(w, "remote", "set-url", "origin", "https://codeberg.org/Medenor/marklet.git"),
       /points to/,
     ],
     [
@@ -320,7 +322,7 @@ describe("release run", () => {
     const { work } = makeRepo(root);
     setup(work);
     await expect(release(opts(work))).rejects.toThrow(message);
-    expect(forge.state.releases).toHaveLength(0);
+    expect(github.state.releases).toHaveLength(0);
   });
 
   it("refuses without a changelog section for the version", async () => {
@@ -330,38 +332,20 @@ describe("release run", () => {
 
   it("refuses an invalid token or a token without write access", async () => {
     const { work } = makeRepo(root);
-    await expect(
-      release(opts(work, { env: { CODEBERG_TOKEN: "wrong", RELEASE_FORGE_URL: forge.state.origin, HOME: root } })),
-    ).rejects.toThrow(/401/);
-    forge.server.close();
-    forge = await fakeForge({ push: false });
-    await expect(release(opts(work))).rejects.toThrow(/cannot write/);
-  });
-
-  it("reads the token from ~/.config/marklet/codeberg-token", async () => {
-    const { work } = makeRepo(root);
-    mkdirSync(join(root, ".config", "marklet"), { recursive: true });
-    writeFileSync(join(root, ".config", "marklet", "codeberg-token"), "secret-token\n", { mode: 0o600 });
-    await release(opts(work, { env: { RELEASE_FORGE_URL: forge.state.origin, HOME: root } }));
-    expect(forge.state.releases).toHaveLength(1);
-  });
-
-  it("prefers the token file over CODEBERG_TOKEN", async () => {
-    const { work } = makeRepo(root);
-    mkdirSync(join(root, ".config", "marklet"), { recursive: true });
-    writeFileSync(join(root, ".config", "marklet", "codeberg-token"), "secret-token\n", { mode: 0o600 });
-    await release(opts(work, { env: { CODEBERG_TOKEN: "wrong", RELEASE_FORGE_URL: forge.state.origin, HOME: root } }));
-    expect(forge.state.releases).toHaveLength(1);
+    await expect(release(opts(work, { env: { ...baseEnv(), GITHUB_TOKEN: "wrong" } }))).rejects.toThrow(/401/);
+    github.server.close();
+    github = await fakeGitHub({ push: false });
+    await expect(release(opts(work, { env: { ...baseEnv(), GITHUB_TOKEN: "secret-token" } }))).rejects.toThrow(
+      /cannot write/,
+    );
   });
 
   it("refuses a real release without any token", async () => {
     const { work } = makeRepo(root);
-    await expect(release(opts(work, { env: { RELEASE_FORGE_URL: forge.state.origin, HOME: root } }))).rejects.toThrow(
-      /No token/,
-    );
+    await expect(release(opts(work, { env: baseEnv() }))).rejects.toThrow(/No token/);
   });
 
-  it("never sends the token to an asset hosted outside the forge", async () => {
+  it("never sends the token to an asset hosted outside the API", async () => {
     const leaked = [];
     const attacker = createServer((req, res) => {
       leaked.push(req.headers.authorization);
@@ -370,15 +354,13 @@ describe("release run", () => {
     await new Promise((r) => attacker.listen(0, "127.0.0.1", r));
     try {
       const { work } = makeRepo(root);
-      // A collaborator pre-created the release with an external "marklet.html" link.
-      forge.state.releases.push({
+      // A collaborator pre-created the release with an external "marklet.html" asset.
+      github.state.releases.push({
         id: 99,
         tag_name: "v1.1.0",
-        assets: [
-          { id: 1, name: "marklet.html", browser_download_url: `http://localhost:${attacker.address().port}/x` },
-        ],
+        assets: [{ id: 1, name: "marklet.html", url: `http://localhost:${attacker.address().port}/x` }],
       });
-      await expect(release(opts(work))).rejects.toThrow(/points outside/);
+      await expect(release(opts(work))).rejects.toThrow(/not served by/);
       expect(leaked).toEqual([]);
     } finally {
       attacker.close();
@@ -389,7 +371,7 @@ describe("release run", () => {
     const { work } = makeRepo(root);
     const checks = [["node", "-e", "require('fs').appendFileSync('dist/marklet.html', 'x')"]];
     await expect(release(opts(work, { checks }))).rejects.toThrow(/fresh build differs/);
-    expect(forge.state.releases).toHaveLength(0);
+    expect(github.state.releases).toHaveLength(0);
   });
 
   it("refuses when the checks modify other files", async () => {
@@ -402,7 +384,7 @@ describe("release run", () => {
     const { work } = makeRepo(root);
     await expect(release(opts(work, { checks: [["node", "-e", "process.exit(3)"]] }))).rejects.toThrow(/exit code 3/);
     await expect(release(opts(work, { install: ["marklet-no-such-command"] }))).rejects.toThrow(/could not start/);
-    expect(forge.state.releases).toHaveLength(0);
+    expect(github.state.releases).toHaveLength(0);
     expect(sh(work, "tag")).toBe("");
   });
 
@@ -414,7 +396,7 @@ describe("release run", () => {
     await release(opts(work));
     expect(logs.join("\n")).toMatch(/Fetched v1\.1\.0/);
     expect(sh(remote, "rev-parse", "v1.1.0^{commit}")).toBe(sh(work, "rev-parse", "HEAD"));
-    expect(forge.state.releases[0].assets).toHaveLength(2);
+    expect(github.state.releases[0].assets).toHaveLength(2);
   });
 
   it("pushes a tag that exists only locally", async () => {
@@ -438,15 +420,15 @@ describe("release run", () => {
     const changelog = "# Changelog\n\n## [1.2.0-rc.1] - 2026-12-01\n\n- Candidate.\n";
     const { work } = makeRepo(root, { version: "1.2.0-rc.1", changelog });
     await release(opts(work));
-    expect(forge.state.releases[0]).toMatchObject({ tag_name: "v1.2.0-rc.1", prerelease: true });
+    expect(github.state.releases[0]).toMatchObject({ tag_name: "v1.2.0-rc.1", prerelease: true });
   });
 
   it("copes with a release response without an assets field", async () => {
-    forge.server.close();
-    forge = await fakeForge({ omitAssets: true });
+    github.server.close();
+    github = await fakeGitHub({ omitAssets: true });
     const { work } = makeRepo(root);
-    await release(opts(work));
-    expect(forge.state.releases[0].assets.map((a) => a.name)).toEqual(["marklet.html", "marklet.html.sha256"]);
+    await release(opts(work, { env: { ...baseEnv(), GITHUB_TOKEN: "secret-token" } }));
+    expect(github.state.releases[0].assets.map((a) => a.name)).toEqual(["marklet.html", "marklet.html.sha256"]);
   });
 
   it("refuses to build with another Node.js major version than .nvmrc", async () => {
@@ -460,7 +442,6 @@ describe("release run", () => {
     sh(work, "remote", "set-url", "origin", "https://user:hunter2@github.com/Medenor/marklet.git");
     const error = await release(opts(work)).catch((e) => e);
     expect(error).toBeInstanceOf(ReleaseError);
-    expect(error.message).toContain("https://***@github.com");
     expect(error.message).not.toContain("hunter2");
   });
 

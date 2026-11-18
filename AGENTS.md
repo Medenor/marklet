@@ -2,11 +2,11 @@
 
 Marklet is a portable Markdown editor with live preview, shipped as one offline HTML file (`dist/marklet.html`) for people who can't install software, typically on locked-down corporate machines.
 
-Package manager: `npm` (not yarn or pnpm). Hosted on Codeberg (`codeberg.org/Medenor/marklet`), public. No CI: checks run locally.
+Package manager: `npm` (not yarn or pnpm). Hosted on GitHub (`github.com/Medenor/marklet`), public. No CI: checks run locally.
 
 ## Must never
 
-- Commit non-trivial changes directly to `main`; use a branch and a PR (template in `.forgejo/`).
+- Commit non-trivial changes directly to `main`; use a branch and a PR (template in `.github/`).
 - Add anything that makes a network request at runtime (CDN script, web font, remote image, analytics). The CSP in `scripts/postbuild.mjs` blocks it anyway; don't loosen the CSP to make something work.
 - Inject rendered Markdown into the DOM without going through `renderPreview` / `renderExport` in `src/render.ts` (DOMPurify).
 - Add runtime compression, `eval`, `new Function` or encoded payloads. Security scanners flag them as HTML smuggling.
@@ -23,5 +23,5 @@ Package manager: `npm` (not yarn or pnpm). Hosted on Codeberg (`codeberg.org/Med
 
 - No `any`. No `console.log` in `src/` (`console.error` for real errors only).
 - Colours come from the CSS variables in `src/styles.css` / `src/preview.css`, defined for light and dark themes.
-- New behaviour gets a test: rendering and sanitising in `tests/render.test.ts`, user-visible behaviour in `tests/e2e.mjs` (runs the built file via `file://`), release tooling in `tests/release.test.mjs` (fake forge, never the real Codeberg).
+- New behaviour gets a test: rendering and sanitising in `tests/render.test.ts`, user-visible behaviour in `tests/e2e.mjs` (runs the built file via `file://`), release tooling in `tests/release.test.mjs` (fake GitHub API, never the real GitHub).
 - Any user-visible change updates `README.md`, the in-app help dialog in `index.html` if shortcuts or behaviour change, and `CHANGELOG.md` under `[Unreleased]`, in the same task.

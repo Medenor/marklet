@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// Publish a Marklet release to Codeberg (or any Forgejo/Gitea forge) from
-// the maintainer's machine. No CI involved; see "Releasing" in README.md.
+// Publish a Marklet release to GitHub from the maintainer's machine. No CI
+// involved; see "Releasing" in README.md.
 //
 //   make release            full release
 //   make release-dry-run    every check, nothing published
 //
-// The token is read from $CODEBERG_TOKEN or ~/.config/marklet/codeberg-token
-// and only ever sent to the forge's API, in the Authorization header.
+// The token comes from $GITHUB_TOKEN or, by default, from `gh auth token`
+// (GitHub CLI). It is only ever sent to the GitHub API, in the Authorization
+// header, and never printed.
 //
 // Re-running after a failure resumes: an existing tag on HEAD and an existing
 // release are reused, and only missing assets are uploaded. A published tag is
@@ -14,8 +15,7 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,11 +28,11 @@ export function isSemver(version) {
   return SEMVER.test(version);
 }
 
-/** "https://codeberg.org/Owner/repo(.git)" → { forge, owner, repo } */
+/** "https://github.com/Owner/repo(.git)" → { forge, owner, repo } */
 export function parseRepository(url) {
   const m = /^(https?:\/\/[^/]+)\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/.exec(url ?? "");
   if (!m)
-    throw new ReleaseError(`package.json "repository" must look like https://codeberg.org/<owner>/<repo>, got: ${url}`);
+    throw new ReleaseError(`package.json "repository" must look like https://github.com/<owner>/<repo>, got: ${url}`);
   return { forge: m[1], owner: m[2], repo: m[3] };
 }
 
@@ -89,25 +89,47 @@ export function sha256(buffer) {
 export class ReleaseError extends Error {}
 
 // ---------------------------------------------------------------------------
-// Forge API client (Forgejo / Gitea API v1)
+// GitHub REST API client
 
-export class Forge {
-  constructor({ forge, owner, repo, token }) {
-    this.api = `${forge.replace(/\/$/, "")}/api/v1`;
+const GITHUB_ACCEPT = "application/vnd.github+json";
+const GITHUB_API_VERSION = "2022-11-28";
+
+export class GitHub {
+  /**
+   * @param {object} o
+   * @param {string} o.api      API base, e.g. https://api.github.com
+   * @param {string} o.uploads  Uploads base, e.g. https://uploads.github.com
+   * @param {string} o.owner
+   * @param {string} o.repo
+   * @param {string} o.token
+   */
+  constructor({ api, uploads, owner, repo, token }) {
+    this.api = api.replace(/\/$/, "");
+    this.uploads = uploads.replace(/\/$/, "");
     this.repoPath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
     this.token = token;
   }
 
-  async request(method, path, { json, form, allow404 = false } = {}) {
-    const headers = { Accept: "application/json", Authorization: `token ${this.token}` };
-    let body;
+  headers(extra = {}) {
+    return {
+      Accept: GITHUB_ACCEPT,
+      "X-GitHub-Api-Version": GITHUB_API_VERSION,
+      Authorization: `Bearer ${this.token}`,
+      ...extra,
+    };
+  }
+
+  async request(method, url, { json, body, contentType, allow404 = false } = {}) {
+    const headers = this.headers();
+    let payload;
     if (json) {
       headers["Content-Type"] = "application/json";
-      body = JSON.stringify(json);
-    } else if (form) {
-      body = form;
+      payload = JSON.stringify(json);
+    } else if (body) {
+      headers["Content-Type"] = contentType;
+      payload = body;
     }
-    const res = await fetch(this.api + path, { method, headers, body });
+    const res = await fetch(url, { method, headers, body: payload });
     if (allow404 && res.status === 404) return null;
     if (!res.ok) {
       const text = (await res.text()).slice(0, 300);
@@ -117,46 +139,51 @@ export class Forge {
           : res.status === 403
             ? " (token lacks a required scope or write access to repositories; the response below names the scope)"
             : "";
+      const path = new URL(url).pathname;
       throw new ReleaseError(`${method} ${path} failed: HTTP ${res.status}${hint}. ${text}`);
     }
     return res.status === 204 ? null : res.json();
   }
 
   user() {
-    return this.request("GET", "/user");
+    return this.request("GET", `${this.api}/user`);
   }
   repository() {
-    return this.request("GET", this.repoPath);
+    return this.request("GET", `${this.api}${this.repoPath}`);
   }
   releaseByTag(tag) {
-    return this.request("GET", `${this.repoPath}/releases/tags/${encodeURIComponent(tag)}`, { allow404: true });
+    return this.request("GET", `${this.api}${this.repoPath}/releases/tags/${encodeURIComponent(tag)}`, {
+      allow404: true,
+    });
   }
   createRelease({ tag, name, body, prerelease }) {
-    return this.request("POST", `${this.repoPath}/releases`, {
+    return this.request("POST", `${this.api}${this.repoPath}/releases`, {
       json: { tag_name: tag, name, body, draft: false, prerelease },
     });
   }
   uploadAsset(releaseId, name, buffer, type) {
-    const form = new FormData();
-    form.append("attachment", new Blob([buffer], { type }), name);
-    return this.request("POST", `${this.repoPath}/releases/${releaseId}/assets?name=${encodeURIComponent(name)}`, {
-      form,
-    });
+    return this.request(
+      "POST",
+      `${this.uploads}${this.repoPath}/releases/${releaseId}/assets?name=${encodeURIComponent(name)}`,
+      { body: buffer, contentType: type },
+    );
   }
   /**
-   * Download an attached asset. The token is only ever sent to the forge's own
-   * origin: release assets can be "external" links set by any collaborator,
-   * and those must never receive the maintainer's credentials.
+   * Download an attached asset through its API URL (not browser_download_url),
+   * so the token is only ever sent to the API origin. GitHub redirects the
+   * download to a storage host; fetch drops the Authorization header on
+   * cross-origin redirects.
    */
-  async download(url) {
-    if (!sameOrigin(url, this.api)) {
+  async download(asset) {
+    const url = asset.url;
+    if (!url || !sameOrigin(url, this.api)) {
       throw new ReleaseError(
-        `An attached asset points outside ${new URL(this.api).origin} (${redactCredentials(url)}). ` +
+        `An attached asset (${asset.name}) is not served by ${new URL(this.api).origin}. ` +
           `It may be an external link added by someone with write access. Remove it from the release and investigate before releasing.`,
       );
     }
-    const res = await fetch(new URL(url, this.api), { headers: { Authorization: `token ${this.token}` } });
-    if (!res.ok) throw new ReleaseError(`Download of ${redactCredentials(url)} failed: HTTP ${res.status}`);
+    const res = await fetch(url, { headers: this.headers({ Accept: "application/octet-stream" }) });
+    if (!res.ok) throw new ReleaseError(`Download of ${asset.name} failed: HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
 }
@@ -166,25 +193,28 @@ export class Forge {
 
 const defaultLog = (msg) => process.stdout.write(msg + "\n");
 
-/**
- * The maintainer's token file wins over $CODEBERG_TOKEN: a token exported for
- * other tools in a shell profile must not silently override the release token.
- * CI, which has no token file, still uses the environment variable.
- */
-function readToken(env, log) {
-  const file = join(env.HOME || env.USERPROFILE || homedir(), ".config", "marklet", "codeberg-token");
-  const fromEnv = env.CODEBERG_TOKEN?.trim() || null;
-  if (existsSync(file)) {
-    if (process.platform !== "win32" && (statSync(file).mode & 0o077) !== 0) {
-      log(`  ! ${file} is readable by other users. Run: chmod 600 ${file}`);
-    }
-    const fromFile = readFileSync(file, "utf8").trim() || null;
-    if (fromFile) {
-      if (fromEnv && fromEnv !== fromFile) log(`  ! CODEBERG_TOKEN is ignored: using ${file}.`);
-      return fromFile;
-    }
+/** $GITHUB_TOKEN, else `gh auth token` (unless disabled, e.g. in tests). */
+function resolveToken(env, { useGhCli }) {
+  const fromEnv = env.GITHUB_TOKEN?.trim() || null;
+  if (fromEnv || !useGhCli) return fromEnv;
+  try {
+    return (
+      execFileSync("gh", ["auth", "token"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null
+    );
+  } catch {
+    return null;
   }
-  return fromEnv;
+}
+
+/** API and uploads bases. RELEASE_API_URL and RELEASE_UPLOADS_URL override them (tests only). */
+function apiBases(target, env) {
+  if (env.RELEASE_API_URL) {
+    return { api: env.RELEASE_API_URL, uploads: env.RELEASE_UPLOADS_URL || env.RELEASE_API_URL };
+  }
+  if (new URL(target.forge).hostname === "github.com") {
+    return { api: "https://api.github.com", uploads: "https://uploads.github.com" };
+  }
+  throw new ReleaseError(`Only github.com releases are supported, not ${target.forge}.`);
 }
 
 /**
@@ -194,9 +224,10 @@ function readToken(env, log) {
  * @param {string[] | null} o.install command run in step 2 (null to skip, in tests)
  * @param {string[][]} o.checks       commands run in step 3
  * @param {Record<string,string|undefined>} o.env
+ * @param {boolean} [o.useGhCli=true] fall back to `gh auth token` (false in tests)
  * @param {(msg: string) => void} [o.log]
  */
-export async function release({ cwd, dryRun, install, checks, env, log = defaultLog }) {
+export async function release({ cwd, dryRun, install, checks, env, useGhCli = true, log = defaultLog }) {
   const git = (...args) => {
     try {
       return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -224,7 +255,7 @@ export async function release({ cwd, dryRun, install, checks, env, log = default
   const version = pkg.version;
   const tag = `v${version}`;
   const target = parseRepository(pkg.repository);
-  if (env.RELEASE_FORGE_URL) target.forge = env.RELEASE_FORGE_URL;
+  const bases = apiBases(target, env);
   const remote = env.RELEASE_REMOTE || "origin";
 
   log(
@@ -304,18 +335,15 @@ export async function release({ cwd, dryRun, install, checks, env, log = default
     );
   }
 
-  const token = readToken(env, log);
-  let forge = null;
+  const token = resolveToken(env, { useGhCli });
+  let github = null;
   if (!token) {
-    if (!dryRun)
-      throw new ReleaseError(
-        "No token. Set CODEBERG_TOKEN or write it to ~/.config/marklet/codeberg-token (see README, Releasing).",
-      );
-    log("  ! No token found: skipping the Codeberg checks in this dry run.");
+    if (!dryRun) throw new ReleaseError("No token. Set GITHUB_TOKEN or run `gh auth login` (see README, Releasing).");
+    log("  ! No token found: skipping the GitHub checks in this dry run.");
   } else {
-    forge = new Forge({ ...target, token });
-    const user = await forge.user();
-    const repo = await forge.repository();
+    github = new GitHub({ ...bases, owner: target.owner, repo: target.repo, token });
+    const user = await github.user();
+    const repo = await github.repository();
     if (!repo.permissions?.push)
       throw new ReleaseError(`User ${user.login} cannot write to ${target.owner}/${target.repo}.`);
     log(`  Token OK: ${user.login}, write access to ${target.owner}/${target.repo}.`);
@@ -387,11 +415,11 @@ export async function release({ cwd, dryRun, install, checks, env, log = default
 
   // 7. Release and assets -----------------------------------------------------
   log("\n7/8 Release");
-  let rel = await forge.releaseByTag(tag);
+  let rel = await github.releaseByTag(tag);
   if (rel) {
     log(`  Release already exists (id ${rel.id}): checking assets.`);
   } else {
-    rel = await forge.createRelease({
+    rel = await github.createRelease({
       tag,
       name: `Marklet ${version}`,
       body: notes,
@@ -402,7 +430,7 @@ export async function release({ cwd, dryRun, install, checks, env, log = default
   for (const asset of assets) {
     const existing = (rel.assets ?? []).find((a) => a.name === asset.name);
     if (existing) {
-      const remoteHash = sha256(await forge.download(existing.browser_download_url));
+      const remoteHash = sha256(await github.download(existing));
       if (remoteHash !== sha256(asset.buffer)) {
         throw new ReleaseError(
           `${asset.name} is already attached to ${tag} but differs from this build. Investigate; do not overwrite a published asset.`,
@@ -410,7 +438,7 @@ export async function release({ cwd, dryRun, install, checks, env, log = default
       }
       log(`  ${asset.name}: already attached, identical`);
     } else {
-      await forge.uploadAsset(rel.id, asset.name, asset.buffer, asset.type);
+      await github.uploadAsset(rel.id, asset.name, asset.buffer, asset.type);
       log(`  ${asset.name}: uploaded`);
     }
   }

@@ -14,7 +14,7 @@ Download `marklet.html`, put it on your desktop, a network share or a USB stick,
 
 ## Download
 
-- **Latest release:** get `marklet.html` and its checksum from the [Releases](https://codeberg.org/Medenor/marklet/releases) page on Codeberg. See [Verify a download](#verify-a-download).
+- **Latest release:** get `marklet.html` and its checksum from the [Releases](https://github.com/Medenor/marklet/releases) page on GitHub. See [Verify a download](#verify-a-download).
 - **Or** take [`dist/marklet.html`](dist/marklet.html) straight from this repository.
 
 The file is about 900 kB and works offline in current versions of Chrome, Edge, Firefox and Safari.
@@ -125,20 +125,23 @@ Writes `dist/marklet.html` and regenerates `THIRD_PARTY_LICENSES.md`. Commit bot
 
 ### Contributing
 
-The project lives on [Codeberg](https://codeberg.org/Medenor/marklet). Work on a branch and open a pull request; the template asks for the size and security impact of the change. There is no CI: run `make check` and paste the result in the pull request. The maintainer runs it again before merging.
+The project lives on [GitHub](https://github.com/Medenor/marklet). Work on a branch and open a pull request; the template asks for the size and security impact of the change. There is no CI: run `make check` and paste the result in the pull request. The maintainer runs it again before merging.
 
-There is no Dependabot on Codeberg. Review dependencies monthly and before each release: `make outdated` lists available updates, and `make security` fails on any advisory in code shipped inside `marklet.html` and on high-severity advisories in build and test tooling.
+Review dependencies monthly and before each release: `make outdated` lists available updates, and `make security` fails on any advisory in code shipped inside `marklet.html` and on high-severity advisories in build and test tooling.
 
 ### Releasing
 
 Releases are published from the maintainer's machine with one command. There is no CI server; the safeguards are in the script ([scripts/release.mjs](scripts/release.mjs)).
 
-**One-time setup.** Create a Codeberg access token (Settings → Applications) with read and write access to repositories. Store it outside the repository, in either:
+**One-time setup.** Install the [GitHub CLI](https://cli.github.com) and sign in with an account that can write to the repository:
 
-- the environment variable `CODEBERG_TOKEN`, or
-- the file `~/.config/marklet/codeberg-token`, readable only by you (`chmod 600`).
+```bash
+gh auth login
+```
 
-The token is only sent to Codeberg's API, in the `Authorization` header, and is never printed.
+The script takes the token from `gh auth token`. To use another token, set the environment variable `GITHUB_TOKEN` instead.
+
+The token is only sent to GitHub's API, in the `Authorization` header, and is never printed.
 
 **Each release:**
 
@@ -155,16 +158,16 @@ The token is only sent to Codeberg's API, in the `Authorization` header, and is 
    make release
    ```
 
-`make release` stops at the first problem. It checks that you are on a clean `main` identical to Codeberg's, that Node.js matches `.nvmrc`, that the version is new and has a changelog section, that git can create the tag (`user.name` and `user.email` set), and that the token can write to the repository. It then runs `npm ci`, `make check` and `make security`, and verifies that the fresh build is identical to the committed `dist/marklet.html`. Only then does it create and push the annotated tag `vX.Y.Z` (signed if git has `tag.gpgSign` enabled; gpg can prompt for its passphrase), create the release with the changelog section as notes, and attach `marklet.html` and `marklet.html.sha256`.
+`make release` stops at the first problem. It checks that you are on a clean `main` identical to GitHub's, that Node.js matches `.nvmrc`, that the version is new and has a changelog section, that git can create the tag (`user.name` and `user.email` set), and that the token can write to the repository. It then runs `npm ci`, `make check` and `make security`, and verifies that the fresh build is identical to the committed `dist/marklet.html`. Only then does it create and push the annotated tag `vX.Y.Z` (signed if git has `tag.gpgSign` enabled; gpg can prompt for its passphrase), create the release with the changelog section as notes, and attach `marklet.html` and `marklet.html.sha256`.
 
-The token is sent only to Codeberg: if an attached file points anywhere else, the script stops instead of downloading it. If it fails halfway, run it again: it reuses the tag and release it already created and uploads only what is missing. It never moves a published tag or replaces a published file. A bad release is fixed with a new patch version.
+The token is sent only to GitHub: if an attached file points anywhere else, the script stops instead of downloading it. If it fails halfway, run it again: it reuses the tag and release it already created and uploads only what is missing. It never moves a published tag or replaces a published file. A bad release is fixed with a new patch version.
 
 ### Verify a download
 
 The build is reproducible, so anyone can check that a released `marklet.html` was built from the published source:
 
 ```bash
-git clone https://codeberg.org/Medenor/marklet.git
+git clone https://github.com/Medenor/marklet.git
 ```
 
 ```bash
@@ -193,7 +196,7 @@ src/storage.ts        Safe localStorage wrapper
 src/preview.css       Document styles (shared by preview and export)
 src/styles.css        Application styles
 scripts/postbuild.mjs CSP hashes, license bundling, output file
-scripts/release.mjs   Codeberg release (make release)
+scripts/release.mjs   GitHub release (make release)
 tests/                Unit, release-script and end-to-end tests
 dist/marklet.html     The built product (committed)
 ```
