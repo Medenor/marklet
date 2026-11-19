@@ -91,6 +91,7 @@ export class ReleaseError extends Error {}
 // ---------------------------------------------------------------------------
 // GitHub REST API client
 
+const GET_ATTEMPTS = 3;
 const GITHUB_ACCEPT = "application/vnd.github+json";
 const GITHUB_API_VERSION = "2022-11-28";
 
@@ -102,12 +103,14 @@ export class GitHub {
    * @param {string} o.owner
    * @param {string} o.repo
    * @param {string} o.token
+   * @param {number} [o.retryDelayMs=1000] base pause between retries of a failed GET
    */
-  constructor({ api, uploads, owner, repo, token }) {
+  constructor({ api, uploads, owner, repo, token, retryDelayMs = 1000 }) {
     this.api = api.replace(/\/$/, "");
     this.uploads = uploads.replace(/\/$/, "");
     this.repoPath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
     this.token = token;
+    this.retryDelayMs = retryDelayMs;
   }
 
   headers(extra = {}) {
@@ -129,7 +132,25 @@ export class GitHub {
       headers["Content-Type"] = contentType;
       payload = body;
     }
-    const res = await fetch(url, { method, headers, body: payload });
+    // Only GET is retried: it is safe to repeat. A POST (create release, upload
+    // asset) may have reached GitHub before the connection failed.
+    const attempts = method === "GET" ? GET_ATTEMPTS : 1;
+    let res;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        res = await fetch(url, { method, headers, body: payload });
+        break;
+      } catch (e) {
+        const cause = e.cause?.code || e.cause?.message || e.message;
+        if (attempt >= attempts) {
+          throw new ReleaseError(
+            `${method} ${new URL(url).pathname} failed: network error (${cause}) after ${attempt} attempt${attempt > 1 ? "s" : ""}. ` +
+              "Nothing is lost: run make release again, it resumes.",
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs * attempt));
+      }
+    }
     if (allow404 && res.status === 404) return null;
     if (!res.ok) {
       const text = (await res.text()).slice(0, 300);

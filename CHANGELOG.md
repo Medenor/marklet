@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `make release-prepare VERSION=X.Y.Z` and `make release-prepare-dry-run VERSION=X.Y.Z` (maintainer only): bump `package.json`, `package-lock.json` and the `[Unreleased]` changelog entries to the new version, then rebuild and run the tests. The dry run shows the changes and writes nothing.
+
+### Fixed
+
+- `make release`: a network error while reading from GitHub is retried (up to three attempts) and reported with its cause, instead of a bare `fetch failed`.
+- `package-lock.json` had the root version `2.0.0` while `package.json` said `1.1.0`. Both are now kept in step by `make release-prepare`.
+
 ## [1.1.0] - 2026-11-18
 
 ### Changed

@@ -154,7 +154,15 @@ The token is only sent to GitHub's API, in the `Authorization` header, and is ne
 
 **Each release:**
 
-1. In a pull request, bump `version` in `package.json` and move the `[Unreleased]` entries of `CHANGELOG.md` under `## [X.Y.Z] - YYYY-MM-DD`. Merge it.
+1. Prepare the release on `main` (or on a `release/vX.Y.Z` branch) with a clean working tree. First check the changes, then apply them:
+
+   ```bash
+   make release-prepare-dry-run VERSION=X.Y.Z
+   make release-prepare VERSION=X.Y.Z
+   ```
+
+   This bumps `version` in `package.json` and `package-lock.json`, and moves the `[Unreleased]` entries of `CHANGELOG.md` under `## [X.Y.Z] - YYYY-MM-DD`. It needs entries under `[Unreleased]`, and the version must be greater than the current one. Then it rebuilds `dist/marklet.html` and runs `make lint test test-e2e`. Nothing is committed. Commit the changed files, including `dist/marklet.html`, in a pull request, and merge it.
+
 2. On an up-to-date `main`, preview the release:
 
    ```bash
