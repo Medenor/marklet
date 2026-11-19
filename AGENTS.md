@@ -17,7 +17,7 @@ Package manager: `npm` (not yarn or pnpm). Hosted on GitHub (`github.com/Medenor
 
 ## Commands
 
-`make` lists targets. `make setup`, `make dev` (port 7883), `make lint`, `make test`, `make test-e2e` (builds first; Chromium from `npx playwright install chromium`), `make build`, `make security`, `make outdated`, `make release-dry-run`. Before a PR: `make check` and `make build`, and paste the result in the PR (there is no CI).
+`make` lists targets. `make setup`, `make dev` (port 7883), `make lint`, `make test`, `make test-e2e` (builds first; Chromium from `npx playwright install chromium`), `make build`, `make security`, `make outdated`, `make release-dry-run`, `make release-prepare-dry-run VERSION=X.Y.Z` and `make release-prepare VERSION=X.Y.Z` (version bump, see README "Releasing"). Before a PR: `make check` and `make build`, and paste the result in the PR (there is no CI).
 
 ## Conventions
 

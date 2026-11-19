@@ -3,7 +3,7 @@
 # Ports: block 7880–7889 (x3 = Vite dev server). Override: FRONTEND_PORT=<port> make dev
 
 .DEFAULT_GOAL := help
-.PHONY: help setup check-ports dev build test test-e2e lint lint-fix security outdated check-dist check release release-dry-run
+.PHONY: help setup check-ports dev build test test-e2e lint lint-fix security outdated check-dist check release release-dry-run release-prepare release-prepare-dry-run
 
 FRONTEND_PORT ?= 7883
 
@@ -73,6 +73,14 @@ check: lint test test-e2e check-dist ## All checks: run before every PR (make re
 release-dry-run: export PATH := $(NODE22_PATH)
 release-dry-run: ## Run every release check and show what would be published, publish nothing
 	$(NODE22_EXE) scripts/release.mjs --dry-run
+
+release-prepare-dry-run: export PATH := $(NODE22_PATH)
+release-prepare-dry-run: ## Show the version bump and changelog move for VERSION=X.Y.Z, write nothing
+	$(NODE22_EXE) scripts/release-prepare.mjs --version "$(VERSION)" --dry-run
+
+release-prepare: export PATH := $(NODE22_PATH)
+release-prepare: ## Bump package.json, package-lock.json and CHANGELOG.md to VERSION=X.Y.Z, then build and test
+	$(NODE22_EXE) scripts/release-prepare.mjs --version "$(VERSION)"
 
 release: export PATH := $(NODE22_PATH)
 release: ## Publish dist/marklet.html as a GitHub release (maintainer only, see README)

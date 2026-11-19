@@ -8,6 +8,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  GitHub,
   changelogSection,
   isSemver,
   nvmrcMajor,
@@ -105,8 +106,8 @@ describe("helpers", () => {
 
 const REPO = "/api/repos/Medenor/marklet";
 
-function fakeGitHub({ token = "secret-token", push = true, omitAssets = false } = {}) {
-  const state = { releases: [], files: new Map(), requests: [] };
+function fakeGitHub({ token = "secret-token", push = true, omitAssets = false, dropGets = 0 } = {}) {
+  const state = { releases: [], files: new Map(), requests: [], dropGets };
   let nextId = 1;
   const server = createServer(async (req, res) => {
     const chunks = [];
@@ -114,6 +115,12 @@ function fakeGitHub({ token = "secret-token", push = true, omitAssets = false } 
     const body = Buffer.concat(chunks);
     const url = new URL(req.url, "http://x");
     state.requests.push({ method: req.method, path: url.pathname, auth: req.headers.authorization });
+    // Simulate the connection being cut before any response (the "fetch failed" of issue #3).
+    if (req.method === "GET" && state.dropGets > 0) {
+      state.dropGets--;
+      req.socket.destroy();
+      return;
+    }
     const send = (status, json) => {
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(json === undefined ? "" : JSON.stringify(json));
@@ -169,6 +176,42 @@ function fakeGitHub({ token = "secret-token", push = true, omitAssets = false } 
     }),
   );
 }
+
+describe("GitHub API client: network errors", () => {
+  let fake;
+  let api;
+  beforeEach(async () => {
+    fake = await fakeGitHub({ dropGets: 0 });
+    api = `http://127.0.0.1:${fake.server.address().port}/api`;
+  });
+  afterEach(() => new Promise((resolve) => fake.server.close(resolve)));
+
+  const client = () =>
+    new GitHub({
+      api,
+      uploads: api.replace("/api", "/uploads"),
+      owner: "Medenor",
+      repo: "marklet",
+      token: "secret-token",
+      retryDelayMs: 1,
+    });
+
+  it("retries a GET whose connection was cut, then succeeds", async () => {
+    fake.state.dropGets = 2;
+    await expect(client().user()).resolves.toEqual({ login: "medenor" });
+    expect(fake.state.requests.filter((r) => r.path === "/api/user")).toHaveLength(3);
+  });
+
+  it("gives up after three attempts and names the network error", async () => {
+    fake.state.dropGets = 99;
+    const err = await client()
+      .user()
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ReleaseError);
+    expect(err.message).toMatch(/GET \/api\/user failed: network error .* after 3 attempts/);
+    expect(fake.state.requests.filter((r) => r.path === "/api/user")).toHaveLength(3);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Throwaway repository with a bare "GitHub" remote
