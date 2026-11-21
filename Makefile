@@ -7,12 +7,12 @@
 
 FRONTEND_PORT ?= 7883
 
-# Builds and releases must use the Node.js major in .nvmrc (22) so the output is reproducible.
-# If Homebrew's node@22 is installed and not already first on PATH, put it first for those targets.
-NODE22_BIN := $(shell brew --prefix node@22 2>/dev/null)/bin
-NODE22_PATH = $(if $(wildcard $(NODE22_BIN)/node),$(NODE22_BIN):$(PATH),$(PATH))
+# Builds and releases must use the Node.js major in .nvmrc (26) so the output is reproducible.
+# If Homebrew's node@26 is installed, put it first on PATH for those targets.
+NODE26_BIN := $(shell brew --prefix node@26 2>/dev/null)/bin
+NODE26_PATH = $(if $(wildcard $(NODE26_BIN)/node),$(NODE26_BIN):$(PATH),$(PATH))
 # Absolute path: a PATH lookup under make picked up another Node (26) in testing.
-NODE22_EXE = $(if $(wildcard $(NODE22_BIN)/node),$(NODE22_BIN)/node,node)
+NODE26_EXE = $(if $(wildcard $(NODE26_BIN)/node),$(NODE26_BIN)/node,node)
 
 help: ## List targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -70,18 +70,18 @@ check-dist: ## Fail if the rebuilt dist/ or THIRD_PARTY_LICENSES.md differ from 
 
 check: lint test test-e2e check-dist ## All checks: run before every PR (make release runs them too)
 
-release-dry-run: export PATH := $(NODE22_PATH)
+release-dry-run: export PATH := $(NODE26_PATH)
 release-dry-run: ## Run every release check and show what would be published, publish nothing
-	$(NODE22_EXE) scripts/release.mjs --dry-run
+	$(NODE26_EXE) scripts/release.mjs --dry-run
 
-release-prepare-dry-run: export PATH := $(NODE22_PATH)
+release-prepare-dry-run: export PATH := $(NODE26_PATH)
 release-prepare-dry-run: ## Show the version bump and changelog move for VERSION=X.Y.Z, write nothing
-	$(NODE22_EXE) scripts/release-prepare.mjs --version "$(VERSION)" --dry-run
+	$(NODE26_EXE) scripts/release-prepare.mjs --version "$(VERSION)" --dry-run
 
-release-prepare: export PATH := $(NODE22_PATH)
+release-prepare: export PATH := $(NODE26_PATH)
 release-prepare: ## Bump package.json, package-lock.json and CHANGELOG.md to VERSION=X.Y.Z, then build and test
-	$(NODE22_EXE) scripts/release-prepare.mjs --version "$(VERSION)"
+	$(NODE26_EXE) scripts/release-prepare.mjs --version "$(VERSION)"
 
-release: export PATH := $(NODE22_PATH)
+release: export PATH := $(NODE26_PATH)
 release: ## Publish dist/marklet.html as a GitHub release (maintainer only, see README)
-	$(NODE22_EXE) scripts/release.mjs
+	$(NODE26_EXE) scripts/release.mjs
